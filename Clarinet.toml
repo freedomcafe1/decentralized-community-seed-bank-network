@@ -1,9 +1,22 @@
+# Install Rust (official)
+# curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Then reopen terminal or source env, then:
+# cargo install --path clarinet[project]
 [project]
 name = "decentralized-community-seed-bank-network"
 description = ""
 authors = []
 telemetry = true
 cache_dir = "./.cache"
+
+[contracts.my-contract]
+path = "contracts/my-contract.clar"
+
+[contracts.seed-registry]
+path = "contracts/seed-registry.clar"
+
+[contracts.community-network]
+path = "contracts/community-network.clar"
 
 # [contracts.counter]
 # path = "contracts/counter.clar"
