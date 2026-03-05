@@ -97,6 +97,52 @@ async function getSeed(seedId: number) {
 }
 
 /**
+ * Example: Get history count for a seed (read-only)
+ */
+async function getSeedHistoryCount(seedId: number) {
+  console.log(`\n📍 Getting history count for seed ${seedId}...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "seed-registry",
+      functionName: "get-seed-history-count",
+      functionArgs: [uintCV(seedId)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ History count:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting history count:", error);
+  }
+}
+
+/**
+ * Example: Get owner at specific index in seed history
+ */
+async function getSeedHistoryOwnerAt(seedId: number, idx: number) {
+  console.log(`\n📍 Getting history owner for seed ${seedId} index ${idx}...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "seed-registry",
+      functionName: "get-seed-history-owner-at",
+      functionArgs: [uintCV(seedId), uintCV(idx)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ History owner:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting history owner:", error);
+  }
+}
+
+/**
  * Example: Register a community
  */
 async function registerCommunity() {
@@ -442,6 +488,9 @@ async function demo() {
   // Read-only calls work without private keys
   console.log("\n--- Read-Only Queries (no private key needed) ---");
   await getSeed(101);
+  // history demonstration
+  await getSeedHistoryCount(101);
+  await getSeedHistoryOwnerAt(101, 0);
   await getTrade(1);
   await isTradeOpen(1);
   
