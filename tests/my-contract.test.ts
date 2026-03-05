@@ -14,14 +14,15 @@ describe("seed-exchange focused tests", () => {
     return m ? parseInt(m[1]) : -1;
   }
 
-  it("initiates a trade and reads it back", () => {
+  it("initiates a trade in a community and reads it back", () => {
     const offered = 10;
     const requested = 20;
+    const communityId = 1;
 
     const tx = simnet.callPublicFn(
       "my-contract",
       "initiate-trade",
-      [Cl.uint(offered), Cl.uint(requested)],
+      [Cl.uint(offered), Cl.uint(requested), Cl.uint(communityId)],
       wallet1
     );
     expect(Cl.prettyPrint(tx.result).toLowerCase()).toContain("ok");
@@ -32,7 +33,7 @@ describe("seed-exchange focused tests", () => {
     expect(roStr).toContain("open");
     expect(roStr).toContain("u10");
     expect(roStr).toContain("u20");
-    // wallet address appears in tuple but we don't assert it explicitly
+    expect(roStr).toContain("u1");  // community-id
 
     // next-trade-id should now equal tradeId+1
     const next = simnet.callReadOnlyFn("my-contract", "get-next-trade-id", [], wallet1);
@@ -43,7 +44,7 @@ describe("seed-exchange focused tests", () => {
     const tx = simnet.callPublicFn(
       "my-contract",
       "initiate-trade",
-      [Cl.uint(5), Cl.uint(5)],
+      [Cl.uint(5), Cl.uint(5), Cl.uint(1)],
       wallet2
     );
     expect(Cl.prettyPrint(tx.result).toLowerCase()).toContain("err");
@@ -53,7 +54,7 @@ describe("seed-exchange focused tests", () => {
     const tx1 = simnet.callPublicFn(
       "my-contract",
       "initiate-trade",
-      [Cl.uint(100), Cl.uint(200)],
+      [Cl.uint(100), Cl.uint(200), Cl.uint(1)],
       wallet2
     );
     expect(Cl.prettyPrint(tx1.result).toLowerCase()).toContain("ok");
@@ -76,7 +77,7 @@ describe("seed-exchange focused tests", () => {
     const tx1 = simnet.callPublicFn(
       "my-contract",
       "initiate-trade",
-      [Cl.uint(7), Cl.uint(8)],
+      [Cl.uint(7), Cl.uint(8), Cl.uint(1)],
       wallet1
     );
     expect(Cl.prettyPrint(tx1.result).toLowerCase()).toContain("ok");
@@ -102,7 +103,7 @@ describe("seed-exchange focused tests", () => {
     const tx = simnet.callPublicFn(
       "my-contract",
       "initiate-trade",
-      [Cl.uint(55), Cl.uint(66)],
+      [Cl.uint(55), Cl.uint(66), Cl.uint(1)],
       wallet3
     );
     expect(Cl.prettyPrint(tx.result).toLowerCase()).toContain("ok");
@@ -129,13 +130,13 @@ describe("seed-exchange focused tests", () => {
     const offerer = wallet1;
 
     // Offerer initiates 3 trades
-    const tx1 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(100), Cl.uint(101)], offerer);
+    const tx1 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(100), Cl.uint(101), Cl.uint(1)], offerer);
     const tid1 = parseUintFromOk(tx1.result);
 
-    const tx2 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(102), Cl.uint(103)], offerer);
+    const tx2 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(102), Cl.uint(103), Cl.uint(1)], offerer);
     const tid2 = parseUintFromOk(tx2.result);
 
-    const tx3 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(104), Cl.uint(105)], offerer);
+    const tx3 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(104), Cl.uint(105), Cl.uint(1)], offerer);
     const tid3 = parseUintFromOk(tx3.result);
 
     // Check count

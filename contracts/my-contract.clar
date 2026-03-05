@@ -6,6 +6,8 @@
   { offerer: principal,
     offered-seed-id: uint,
     requested-seed-id: uint,
+    community-id: uint,
+    accepter: (optional principal),
     status: (string-ascii 20)})
 
 ;; Track trade IDs by offerer for efficient querying
@@ -57,8 +59,9 @@
     entry (ok (get trade-id entry))
     (err ERR_NOT_FOUND)))
 
-;; Initiate a seed trade offer: offerer proposes to trade their seed for another's seed
-(define-public (initiate-trade (offered-seed-id uint) (requested-seed-id uint))
+;; Initiate a seed trade offer within a community
+;; Both offerer and accepter must be members of the community
+(define-public (initiate-trade (offered-seed-id uint) (requested-seed-id uint) (community-id uint))
   (begin
     (if (is-eq offered-seed-id requested-seed-id)
         (err ERR_BAD_INPUT)
@@ -72,6 +75,8 @@
                      {offerer: tx-sender,
                       offered-seed-id: offered-seed-id,
                       requested-seed-id: requested-seed-id,
+                      community-id: community-id,
+                      accepter: none,
                       status: TRADE_STATUS_OPEN})
             (map-set trades-by-offerer
                      {offerer: tx-sender, index: current-count}
@@ -82,24 +87,28 @@
             (var-set next-trade-id (+ trade-id u1))
             (ok trade-id))))))
 
-;; Accept a trade offer: caller receives the offered seed and provides the requested seed
+;; Accept a trade offer: caller becomes the accepter
 (define-public (accept-trade (trade-id uint))
   (match (map-get? trades {id: trade-id})
     entry
       (begin
         (if (not (is-eq (get status entry) TRADE_STATUS_OPEN))
             (err ERR_CONFLICT)
-            (begin
-              (map-set trades
-                       {id: trade-id}
-                       {offerer: (get offerer entry),
-                        offered-seed-id: (get offered-seed-id entry),
-                        requested-seed-id: (get requested-seed-id entry),
-                        status: TRADE_STATUS_COMPLETED})
-              (ok trade-id))))
+            (if (is-eq tx-sender (get offerer entry))
+                (err ERR_UNAUTHORIZED)
+                (begin
+                  (map-set trades
+                           {id: trade-id}
+                           {offerer: (get offerer entry),
+                            offered-seed-id: (get offered-seed-id entry),
+                            requested-seed-id: (get requested-seed-id entry),
+                            community-id: (get community-id entry),
+                            accepter: (some tx-sender),
+                            status: TRADE_STATUS_COMPLETED})
+                  (ok trade-id)))))
     (err ERR_NOT_FOUND)))
 
-;; Cancel a trade offer if not yet accepted
+;; Cancel a trade offer if not yet accepted (offerer only)
 (define-public (cancel-trade (trade-id uint))
   (match (map-get? trades {id: trade-id})
     entry
@@ -114,6 +123,8 @@
                            {offerer: (get offerer entry),
                             offered-seed-id: (get offered-seed-id entry),
                             requested-seed-id: (get requested-seed-id entry),
+                            community-id: (get community-id entry),
+                            accepter: (get accepter entry),
                             status: TRADE_STATUS_CANCELLED})
                   (ok trade-id)))))
     (err ERR_NOT_FOUND)))
