@@ -103,10 +103,47 @@ async function exampleRegisterCommunity(privateKey: string) {
 }
 
 /**
- * Example 2: Register a seed
+ * Example 2: Join a community
+ */
+async function exampleJoinCommunity(privateKey: string) {
+  console.log("\n📍 Example 2: Join Community");
+  console.log("━".repeat(60));
+
+  const nonce = await getAccountNonce(DEPLOYER);
+
+  const tx = await makeContractCall({
+    contractAddress: DEPLOYER,
+    contractName: "community-network",
+    functionName: "join-community",
+    functionArgs: [uintCV(10)],
+    senderKey: privateKey,
+    nonce,
+    network,
+    anchorMode: "onChainOnly",
+    fee: 1500,
+  });
+
+  console.log("Signing transaction...");
+  console.log(`  Deployer: ${DEPLOYER}`);
+  console.log(`  Community ID: 10`);
+  console.log(`  Fee: 1500 uSTX`);
+
+  try {
+    const txid = await broadcastTx(tx);
+    console.log(`✅ Transaction broadcast!`);
+    console.log(`   TXID: ${txid}`);
+    console.log(`   You are now a member of community 10`);
+    return txid;
+  } catch (error) {
+    console.error(`❌ Failed to broadcast:`, error);
+  }
+}
+
+/**
+ * Example 3: Register a seed
  */
 async function exampleRegisterSeed(privateKey: string) {
-  console.log("\n📍 Example 2: Register Seed");
+  console.log("\n📍 Example 3: Register Seed");
   console.log("━".repeat(60));
 
   const nonce = await getAccountNonce(DEPLOYER);
@@ -149,10 +186,10 @@ async function exampleRegisterSeed(privateKey: string) {
 }
 
 /**
- * Example 3: Initiate a seed trade
+ * Example 4: Initiate a seed trade
  */
 async function exampleInitiateTrade(privateKey: string) {
-  console.log("\n📍 Example 3: Initiate Trade");
+  console.log("\n📍 Example 4: Initiate Trade");
   console.log("━".repeat(60));
 
   const nonce = await getAccountNonce(DEPLOYER);
@@ -161,7 +198,7 @@ async function exampleInitiateTrade(privateKey: string) {
     contractAddress: DEPLOYER,
     contractName: "my-contract",
     functionName: "initiate-trade",
-    functionArgs: [uintCV(5001), uintCV(5002)],
+    functionArgs: [uintCV(5001), uintCV(5002), uintCV(10)],
     senderKey: privateKey,
     nonce,
     network,
@@ -173,13 +210,14 @@ async function exampleInitiateTrade(privateKey: string) {
   console.log(`  Deployer: ${DEPLOYER}`);
   console.log(`  Offered Seed ID: 5001`);
   console.log(`  Requested Seed ID: 5002`);
+  console.log(`  Community ID: 10`);
   console.log(`  Fee: 2000 uSTX`);
 
   try {
     const txid = await broadcastTx(tx);
     console.log(`✅ Transaction broadcast!`);
     console.log(`   TXID: ${txid}`);
-    console.log(`   This creates a new trade (ID will be assigned by contract)`);
+    console.log(`   This creates a new trade in community 10 (ID will be assigned by contract)`);
     return txid;
   } catch (error) {
     console.error(`❌ Failed to broadcast:`, error);
@@ -218,14 +256,17 @@ async function main() {
   try {
     // Uncomment the examples you want to run:
     // await exampleRegisterCommunity(privateKey);
+    // await exampleJoinCommunity(privateKey);
     // await exampleRegisterSeed(privateKey);
     // await exampleInitiateTrade(privateKey);
 
     console.log("\n⚠️  Examples are commented out to prevent accidental transactions.");
     console.log("\nTo run them, uncomment the lines in this script:");
     console.log("   await exampleRegisterCommunity(privateKey);");
+    console.log("   await exampleJoinCommunity(privateKey);");
     console.log("   await exampleRegisterSeed(privateKey);");
     console.log("   await exampleInitiateTrade(privateKey);");
+    console.log("\nNote: initiate-trade now requires a community-id parameter");
   } catch (error) {
     console.error("Error:", error);
   }

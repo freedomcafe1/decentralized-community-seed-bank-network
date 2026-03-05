@@ -64,6 +64,24 @@ async function readOnlyDemo() {
     }
   }
 
+  // 2b. Query community membership counts
+  console.log("\n👥 Community Membership - Member counts:");
+  for (let id = 1; id <= 3; id++) {
+    try {
+      const result = await callReadOnlyFunction({
+        contractAddress: DEPLOYER,
+        contractName: "community-network",
+        functionName: "get-member-count",
+        functionArgs: [uintCV(id)],
+        senderAddress: DEPLOYER,
+        network,
+      });
+      console.log(`  Community ${id} members:`, JSON.stringify(result, null, 2));
+    } catch (e) {
+      console.log(`  Community ${id}: Not found (err 404)`);
+    }
+  }
+
   // 3. Query my-contract (seed-exchange)
   console.log("\n🔄 Seed Exchange - Querying trades:");
   for (let id = 1; id <= 3; id++) {
