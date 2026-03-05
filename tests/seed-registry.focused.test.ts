@@ -85,7 +85,7 @@ describe("seed-registry focused tests", () => {
     expect(Cl.prettyPrint(badUpd.result).toLowerCase()).toContain("err");
   });
 
-  it("transfers ownership and new owner can update", () => {
+  it("transfers ownership and new owner can update (history tracked)", () => {
     const id = 103;
     // register under wallet1
     const reg = simnet.callPublicFn(
@@ -96,6 +96,24 @@ describe("seed-registry focused tests", () => {
     );
     expect(reg.result).toBeOk(Cl.uint(id));
 
+    // history should start with one owner (wallet1)
+    const histCount1 = simnet.callReadOnlyFn(
+      "seed-registry",
+      "get-seed-history-count",
+      [Cl.uint(id)],
+      wallet1
+    );
+    expect(Cl.prettyPrint(histCount1.result)).toContain("u1");
+
+    const owner0 = simnet.callReadOnlyFn(
+      "seed-registry",
+      "get-seed-history-owner-at",
+      [Cl.uint(id), Cl.uint(0)],
+      wallet1
+    );
+    // owner0.result should equal (ok <wallet1 principal>)
+    expect(owner0.result).toEqual(Cl.ok(Cl.principal(wallet1)));
+
     // transfer to wallet2
     const tx = simnet.callPublicFn(
       "seed-registry",
@@ -105,7 +123,25 @@ describe("seed-registry focused tests", () => {
     );
     expect(Cl.prettyPrint(tx.result).toLowerCase()).toContain("ok");
 
-    // new owner updates
+    // after transfer, history count increases
+    const histCount2 = simnet.callReadOnlyFn(
+      "seed-registry",
+      "get-seed-history-count",
+      [Cl.uint(id)],
+      wallet1
+    );
+    expect(Cl.prettyPrint(histCount2.result)).toContain("u2");
+
+    // verify owners recorded in order
+    const hist1 = simnet.callReadOnlyFn(
+      "seed-registry",
+      "get-seed-history-owner-at",
+      [Cl.uint(id), Cl.uint(1)],
+      wallet1
+    );
+    expect(hist1.result).toEqual(Cl.ok(Cl.principal(wallet2)));
+
+    // new owner updates metadata
     const upd = simnet.callPublicFn(
       "seed-registry",
       "update-seed",
