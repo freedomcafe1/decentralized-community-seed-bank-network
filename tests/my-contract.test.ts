@@ -124,4 +124,71 @@ describe("seed-exchange focused tests", () => {
     const openFlag2 = simnet.callReadOnlyFn("my-contract", "is-trade-open", [Cl.uint(tid)], wallet3);
     expect(Cl.prettyPrint(openFlag2.result)).toContain("false");
   });
+
+  it("tracks trades by offerer and retrieves them", () => {
+    const offerer = wallet1;
+
+    // Offerer initiates 3 trades
+    const tx1 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(100), Cl.uint(101)], offerer);
+    const tid1 = parseUintFromOk(tx1.result);
+
+    const tx2 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(102), Cl.uint(103)], offerer);
+    const tid2 = parseUintFromOk(tx2.result);
+
+    const tx3 = simnet.callPublicFn("my-contract", "initiate-trade", [Cl.uint(104), Cl.uint(105)], offerer);
+    const tid3 = parseUintFromOk(tx3.result);
+
+    // Check count
+    const countResult = simnet.callReadOnlyFn(
+      "my-contract",
+      "get-trades-count-by-offerer",
+      [Cl.principal(offerer)],
+      offerer
+    );
+    const countStr = Cl.prettyPrint(countResult.result);
+    expect(countStr).toContain("u3");
+
+    // Retrieve each trade by index
+    const trade0 = simnet.callReadOnlyFn(
+      "my-contract",
+      "get-trade-by-offerer-at-index",
+      [Cl.principal(offerer), Cl.uint(0)],
+      offerer
+    );
+    expect(Cl.prettyPrint(trade0.result)).toContain("u" + tid1);
+
+    const trade1 = simnet.callReadOnlyFn(
+      "my-contract",
+      "get-trade-by-offerer-at-index",
+      [Cl.principal(offerer), Cl.uint(1)],
+      offerer
+    );
+    expect(Cl.prettyPrint(trade1.result)).toContain("u" + tid2);
+
+    const trade2 = simnet.callReadOnlyFn(
+      "my-contract",
+      "get-trade-by-offerer-at-index",
+      [Cl.principal(offerer), Cl.uint(2)],
+      offerer
+    );
+    expect(Cl.prettyPrint(trade2.result)).toContain("u" + tid3);
+
+    // Out of bounds should error
+    const oob = simnet.callReadOnlyFn(
+      "my-contract",
+      "get-trade-by-offerer-at-index",
+      [Cl.principal(offerer), Cl.uint(99)],
+      offerer
+    );
+    expect(Cl.prettyPrint(oob.result).toLowerCase()).toContain("err");
+
+    // Different offerer should have count 0
+    const otherCount = simnet.callReadOnlyFn(
+      "my-contract",
+      "get-trades-count-by-offerer",
+      [Cl.principal(wallet2)],
+      wallet2
+    );
+    expect(Cl.prettyPrint(otherCount.result)).toContain("u0");
+  });
 });

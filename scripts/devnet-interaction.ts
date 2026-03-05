@@ -249,6 +249,99 @@ async function cancelTrade(tradeId: number) {
 }
 
 /**
+ * Example: Get count of trades by an offerer (read-only)
+ */
+async function getTradeCountByOfferer(offerer: string) {
+  console.log(`\n📍 Getting trade count for ${offerer}...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "get-trades-count-by-offerer",
+      functionArgs: [standardPrincipalCV(offerer)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Trade count:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting trade count:", error);
+  }
+}
+
+/**
+ * Example: Get trade at specific index for an offerer (read-only)
+ */
+async function getTradeByOffererAtIndex(offerer: string, index: number) {
+  console.log(`\n📍 Getting trade at index ${index} for ${offerer}...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "get-trade-by-offerer-at-index",
+      functionArgs: [standardPrincipalCV(offerer), uintCV(index)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Trade ID:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting trade:", error);
+  }
+}
+
+/**
+ * Example: Get all trades for an offerer (utility function)
+ */
+async function getTradesByOfferer(offerer: string) {
+  console.log(`\n📍 Fetching all trades for ${offerer}...`);
+
+  try {
+    const countResult = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "get-trades-count-by-offerer",
+      functionArgs: [standardPrincipalCV(offerer)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    const countStr = JSON.stringify(countResult);
+    const match = countStr.match(/u(\d+)/);
+    const count = match ? parseInt(match[1]) : 0;
+
+    console.log(`Found ${count} trades`);
+
+    const trades = [];
+    for (let i = 0; i < count; i++) {
+      try {
+        const tradeIdResult = await callReadOnlyFunction({
+          contractAddress: DEPLOYER,
+          contractName: "my-contract",
+          functionName: "get-trade-by-offerer-at-index",
+          functionArgs: [standardPrincipalCV(offerer), uintCV(i)],
+          senderAddress: DEPLOYER,
+          network,
+        });
+        trades.push(tradeIdResult);
+      } catch (e) {
+        // Index out of bounds, stop iteration
+        break;
+      }
+    }
+
+    console.log("✅ Trade IDs:", trades);
+    return trades;
+  } catch (error) {
+    console.error("❌ Error fetching trades:", error);
+  }
+}
+
+/**
  * Main demo function
  */
 async function demo() {
@@ -262,6 +355,12 @@ async function demo() {
   await getSeed(101);
   await getTrade(1);
   await isTradeOpen(1);
+  
+  // NEW: Trade querying by offerer
+  console.log("\n--- Query Trades by Offerer ---");
+  await getTradeCountByOfferer(DEPLOYER);
+  await getTradeByOffererAtIndex(DEPLOYER, 0);
+  // await getTradesByOfferer(DEPLOYER);  // uncomment to load all trades
 
   console.log("\n--- State-Changing Calls (require private key) ---");
   console.log("⚠️  Note: The following calls require YOUR_PRIVATE_KEY_HERE to be set.");
