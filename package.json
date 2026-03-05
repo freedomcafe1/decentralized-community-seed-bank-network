@@ -8,7 +8,13 @@
   "scripts": {
     "test": "vitest run",
     "test:report": "vitest run -- --coverage --costs",
-    "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\""
+    "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
+    "devnet:read": "ts-node scripts/read-only-demo.ts",
+    "devnet:interact": "ts-node scripts/devnet-interaction.ts",
+    "devnet:signed": "ts-node scripts/signed-tx-example.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
   },
   "author": "",
   "license": "ISC",

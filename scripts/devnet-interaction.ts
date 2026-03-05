@@ -1,0 +1,278 @@
+/**
+ * Devnet Interaction Script
+ * 
+ * This script demonstrates how to interact with deployed contracts
+ * on a local Devnet instance running at http://localhost:20443
+ *
+ * Usage:
+ *   npx ts-node scripts/devnet-interaction.ts
+ *
+ * Prerequisites:
+ *   1. Clarinet Devnet running: clarinet devnet start
+ *   2. Contracts deployed: clarinet deployments apply --devnet
+ *   3. Install ts-node: npm install --save-dev ts-node
+ */
+
+import { StacksNetwork, StacksTestnet } from "@stacks/network";
+import {
+  TxBroadcastResult,
+  standardPrincipalCV,
+  uintCV,
+  stringAsciiCV,
+  contractPrincipalCV,
+  callReadOnlyFunction,
+  submitTransaction,
+  makeContractCall,
+  broadcastTransaction,
+} from "@stacks/transactions";
+import { fetchAccountNonce } from "@stacks/stacks-blockchain-api-client";
+import { getNetworkFromEnv } from "stacks-common";
+
+/**
+ * Configuration
+ */
+const DEVNET_NODE = "http://localhost:20443";
+const DEVNET_API = "http://localhost:3999";
+
+// Deployed contract addresses (from your devnet plan)
+const DEPLOYER = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+
+// Create a custom Stacks network for local devnet
+const network = new StacksTestnet({
+  url: DEVNET_NODE,
+});
+
+/**
+ * Example: Register a seed in the seed-registry contract
+ */
+async function registerSeed() {
+  console.log("\n📍 Registering a seed in seed-registry...");
+
+  try {
+    const seedId = uintCV(101);
+    const species = stringAsciiCV("Tomato");
+    const variety = stringAsciiCV("Heirloom Cherry");
+    const origin = stringAsciiCV("Local Farm");
+    const viability = uintCV(95);
+
+    const tx = await makeContractCall({
+      contractAddress: DEPLOYER,
+      contractName: "seed-registry",
+      functionName: "register-seed",
+      functionArgs: [seedId, species, variety, origin, viability],
+      senderKey: "YOUR_PRIVATE_KEY_HERE", // replace with actual key
+      network,
+      anchorMode: "onChainOnly",
+      fee: 1000,
+    });
+
+    console.log(`✅ Transaction created: ${tx.txid}`);
+    return tx.txid;
+  } catch (error) {
+    console.error("❌ Error registering seed:", error);
+  }
+}
+
+/**
+ * Example: Query a seed from seed-registry (read-only)
+ */
+async function getSeed(seedId: number) {
+  console.log(`\n📍 Querying seed ID ${seedId} from seed-registry...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "seed-registry",
+      functionName: "get-seed",
+      functionArgs: [uintCV(seedId)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Seed data:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error querying seed:", error);
+  }
+}
+
+/**
+ * Example: Register a community
+ */
+async function registerCommunity() {
+  console.log("\n📍 Registering a community in community-network...");
+
+  try {
+    const communityId = uintCV(1);
+    const communityName = stringAsciiCV("Urban Gardeners Collective");
+
+    const tx = await makeContractCall({
+      contractAddress: DEPLOYER,
+      contractName: "community-network",
+      functionName: "register-community",
+      functionArgs: [communityId, communityName],
+      senderKey: "YOUR_PRIVATE_KEY_HERE",
+      network,
+      anchorMode: "onChainOnly",
+      fee: 1000,
+    });
+
+    console.log(`✅ Transaction created: ${tx.txid}`);
+    return tx.txid;
+  } catch (error) {
+    console.error("❌ Error registering community:", error);
+  }
+}
+
+/**
+ * Example: Initiate a seed trade
+ */
+async function initiateTrade() {
+  console.log("\n📍 Initiating a seed trade in my-contract...");
+
+  try {
+    const offeredSeedId = uintCV(101);
+    const requestedSeedId = uintCV(102);
+
+    const tx = await makeContractCall({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "initiate-trade",
+      functionArgs: [offeredSeedId, requestedSeedId],
+      senderKey: "YOUR_PRIVATE_KEY_HERE",
+      network,
+      anchorMode: "onChainOnly",
+      fee: 1500,
+    });
+
+    console.log(`✅ Transaction created: ${tx.txid}`);
+    return tx.txid;
+  } catch (error) {
+    console.error("❌ Error initiating trade:", error);
+  }
+}
+
+/**
+ * Example: Query trade status (read-only)
+ */
+async function getTrade(tradeId: number) {
+  console.log(`\n📍 Querying trade ID ${tradeId} from my-contract...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "get-trade",
+      functionArgs: [uintCV(tradeId)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Trade data:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error querying trade:", error);
+  }
+}
+
+/**
+ * Example: Check if a trade is open (read-only)
+ */
+async function isTradeOpen(tradeId: number) {
+  console.log(`\n📍 Checking if trade ID ${tradeId} is open...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "is-trade-open",
+      functionArgs: [uintCV(tradeId)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Trade open status:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error checking trade status:", error);
+  }
+}
+
+/**
+ * Example: Accept a trade
+ */
+async function acceptTrade(tradeId: number) {
+  console.log(`\n📍 Accepting trade ID ${tradeId}...`);
+
+  try {
+    const tx = await makeContractCall({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "accept-trade",
+      functionArgs: [uintCV(tradeId)],
+      senderKey: "YOUR_PRIVATE_KEY_HERE",
+      network,
+      anchorMode: "onChainOnly",
+      fee: 1500,
+    });
+
+    console.log(`✅ Transaction created: ${tx.txid}`);
+    return tx.txid;
+  } catch (error) {
+    console.error("❌ Error accepting trade:", error);
+  }
+}
+
+/**
+ * Example: Cancel a trade (offerer only)
+ */
+async function cancelTrade(tradeId: number) {
+  console.log(`\n📍 Cancelling trade ID ${tradeId}...`);
+
+  try {
+    const tx = await makeContractCall({
+      contractAddress: DEPLOYER,
+      contractName: "my-contract",
+      functionName: "cancel-trade",
+      functionArgs: [uintCV(tradeId)],
+      senderKey: "YOUR_PRIVATE_KEY_HERE",
+      network,
+      anchorMode: "onChainOnly",
+      fee: 1500,
+    });
+
+    console.log(`✅ Transaction created: ${tx.txid}`);
+    return tx.txid;
+  } catch (error) {
+    console.error("❌ Error cancelling trade:", error);
+  }
+}
+
+/**
+ * Main demo function
+ */
+async function demo() {
+  console.log("🌱 Seed Bank Devnet Interaction Demo");
+  console.log(`📡 Network: ${DEVNET_NODE}`);
+  console.log(`🏗️  Deployer: ${DEPLOYER}`);
+  console.log("=".repeat(60));
+
+  // Read-only calls work without private keys
+  console.log("\n--- Read-Only Queries (no private key needed) ---");
+  await getSeed(101);
+  await getTrade(1);
+  await isTradeOpen(1);
+
+  console.log("\n--- State-Changing Calls (require private key) ---");
+  console.log("⚠️  Note: The following calls require YOUR_PRIVATE_KEY_HERE to be set.");
+  console.log("   See script for details on how to provide signing keys.");
+  console.log("\n   Uncomment the calls below and provide your private key:");
+  console.log("     await registerSeed();");
+  console.log("     await registerCommunity();");
+  console.log("     await initiateTrade();");
+  console.log("     await acceptTrade(1);");
+  console.log("     await cancelTrade(1);");
+}
+
+// Run demo
+demo().catch(console.error);
