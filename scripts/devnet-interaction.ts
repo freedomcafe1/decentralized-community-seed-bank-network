@@ -342,6 +342,95 @@ async function getTradesByOfferer(offerer: string) {
 }
 
 /**
+ * Example: Get member count for a community (read-only)
+ */
+async function getMemberCount(communityId: number) {
+  console.log(`\n👥 Getting member count for community ${communityId}...`);
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "community-network",
+      functionName: "get-member-count",
+      functionArgs: [uintCV(communityId)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Member count:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting member count:", error);
+  }
+}
+
+/**
+ * Example: Check if user is a member of a community (read-only)
+ */
+async function isMember(communityId: number, memberAddress: string) {
+  console.log(
+    `\n🔍 Checking if ${memberAddress} is member of community ${communityId}...`
+  );
+
+  try {
+    const result = await callReadOnlyFunction({
+      contractAddress: DEPLOYER,
+      contractName: "community-network",
+      functionName: "is-member",
+      functionArgs: [uintCV(communityId), standardPrincipalCV(memberAddress)],
+      senderAddress: DEPLOYER,
+      network,
+    });
+
+    console.log("✅ Is member?:", result);
+    return result;
+  } catch (error) {
+    console.error("❌ Error checking membership:", error);
+  }
+}
+
+/**
+ * Example: Join a community (requires signing)
+ * @note Requires valid private key to sign transaction
+ */
+async function joinCommunity(communityId: number) {
+  console.log(`\n➕ Joining community ${communityId}...`);
+
+  try {
+    if (!PRIVATE_KEY || PRIVATE_KEY === "YOUR_PRIVATE_KEY_HERE") {
+      console.warn(
+        "⚠️  PRIVATE_KEY not set. Cannot execute transaction. See script for details."
+      );
+      return;
+    }
+
+    const functionCall = await makeContractCall({
+      contract: {
+        address: DEPLOYER,
+        name: "community-network",
+      },
+      function: "join-community",
+      functionArgs: [uintCV(communityId)],
+      senderKey: PRIVATE_KEY,
+      network,
+      validateWithAbi: true,
+      anchorMode: AnchorMode.OnChainOnly,
+    });
+
+    const broadcastResult = await broadcastTransaction({
+      transaction: functionCall,
+      network,
+    });
+
+    console.log("✅ Join community transaction broadcast:");
+    console.log(`   TXID: ${broadcastResult.txid}`);
+    return broadcastResult;
+  } catch (error) {
+    console.error("❌ Error joining community:", error);
+  }
+}
+
+/**
  * Main demo function
  */
 async function demo() {
@@ -362,13 +451,19 @@ async function demo() {
   await getTradeByOffererAtIndex(DEPLOYER, 0);
   // await getTradesByOfferer(DEPLOYER);  // uncomment to load all trades
 
+  // NEW: Community membership queries
+  console.log("\n--- Community Membership ---");
+  await getMemberCount(1);
+  await isMember(1, DEPLOYER);
+
   console.log("\n--- State-Changing Calls (require private key) ---");
   console.log("⚠️  Note: The following calls require YOUR_PRIVATE_KEY_HERE to be set.");
   console.log("   See script for details on how to provide signing keys.");
   console.log("\n   Uncomment the calls below and provide your private key:");
   console.log("     await registerSeed();");
   console.log("     await registerCommunity();");
-  console.log("     await initiateTrade();");
+  console.log("     await joinCommunity(1);");
+  console.log("     await initiateTrade(1, 2, 1);  // offerer-seed, requested-seed, community-id");
   console.log("     await acceptTrade(1);");
   console.log("     await cancelTrade(1);");
 }
